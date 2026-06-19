@@ -1,270 +1,391 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { 
-  LayoutDashboard, 
-  Award, 
-  BookOpen, 
-  CreditCard, 
+  FolderOpen, 
+  FileImage, 
   ChevronLeft, 
   ChevronRight, 
-  Sun, 
-  Moon, 
-  Zap, 
-  Users, 
-  Sparkles,
-  Plus
+  ArrowUp, 
+  ArrowDown, 
+  ArrowLeft, 
+  ArrowRight, 
+  ZoomIn, 
+  ZoomOut, 
+  RotateCw, 
+  Printer, 
+  CheckCircle2, 
+  Key
 } from "lucide-react";
 import "./App.css";
 
-type Tab = "dashboard" | "certificates" | "classes" | "subscription";
-type Theme = "light" | "dark";
-
 function App() {
-  const [activeTab, setActiveTab] = useState<Tab>("dashboard");
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [theme, setTheme] = useState<Theme>("dark");
-  const [licenseKey, setLicenseKey] = useState("");
-
-  const [mockUser] = useState({
-    name: "Giáo viên Demo",
-    plan: "Premium",
-    expiry: "2027-06-19"
+  const [selectedImages, setSelectedImages] = useState<string[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  
+  const [imageOffsets, setImageOffsets] = useState({
+    x: 0,
+    y: 0,
+    scale: 1,
+    rotation: 0
   });
 
-  useEffect(() => {
-    document.documentElement.setAttribute("data-theme", theme);
-  }, [theme]);
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState(0);
+  const [exportSuccess, setExportSuccess] = useState(false);
+  const [licenseKey, setLicenseKey] = useState("");
+  const [licenseStatus, setLicenseStatus] = useState("Premium (Hạn dùng: Vĩnh viễn)");
 
-  const toggleTheme = () => {
-    setTheme(prev => (prev === "light" ? "dark" : "light"));
+  const handleSelectFolder = () => {
+    setSelectedImages([
+      "Nguyen Van A.jpg",
+      "Tran Thi B.jpg",
+      "Le Van C.jpg",
+      "Pham Minh D.jpg",
+      "Hoang Anh E.jpg"
+    ]);
+    setCurrentIndex(0);
+    setImageOffsets({ x: 0, y: 0, scale: 1, rotation: 0 });
+    setExportSuccess(false);
   };
 
-  const getPageTitle = () => {
-    switch (activeTab) {
-      case "dashboard": return "Bảng Điều Khiển";
-      case "certificates": return "Tạo Chứng Chỉ";
-      case "classes": return "Quản Lý Lớp Học";
-      case "subscription": return "Gói Ứng Dụng";
+  const handleSelectFiles = () => {
+    setSelectedImages([
+      "Nguyen Van A.jpg",
+      "Tran Thi B.jpg"
+    ]);
+    setCurrentIndex(0);
+    setImageOffsets({ x: 0, y: 0, scale: 1, rotation: 0 });
+    setExportSuccess(false);
+  };
+
+  const handleClearImages = () => {
+    setSelectedImages([]);
+    setCurrentIndex(0);
+    setExportSuccess(false);
+  };
+
+  const handleNext = () => {
+    if (currentIndex < selectedImages.length - 1) {
+      setCurrentIndex(currentIndex + 1);
     }
+  };
+
+  const handlePrev = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex(currentIndex - 1);
+    }
+  };
+
+  const adjustOffset = (direction: "up" | "down" | "left" | "right") => {
+    setImageOffsets(prev => {
+      switch (direction) {
+        case "up": return { ...prev, y: prev.y - 5 };
+        case "down": return { ...prev, y: prev.y + 5 };
+        case "left": return { ...prev, x: prev.x - 5 };
+        case "right": return { ...prev, x: prev.x + 5 };
+      }
+    });
+  };
+
+  const adjustZoom = (type: "in" | "out") => {
+    setImageOffsets(prev => {
+      const delta = type === "in" ? 0.1 : -0.1;
+      return { ...prev, scale: Math.max(0.5, Math.min(3, prev.scale + delta)) };
+    });
+  };
+
+  const adjustRotation = () => {
+    setImageOffsets(prev => ({ ...prev, rotation: (prev.rotation + 90) % 360 }));
+  };
+
+  const handleExportPDF = () => {
+    if (selectedImages.length === 0) return;
+    setIsExporting(true);
+    setExportProgress(0);
+    setExportSuccess(false);
+
+    const interval = setInterval(() => {
+      setExportProgress(prev => {
+        if (prev >= 100) {
+          clearInterval(interval);
+          setIsExporting(false);
+          setExportSuccess(true);
+          return 100;
+        }
+        return prev + 20;
+      });
+    }, 400);
+  };
+
+  const handleActivateLicense = () => {
+    if (licenseKey.trim() !== "") {
+      setLicenseStatus("Premium (Đã kích hoạt thành công)");
+      setLicenseKey("");
+    }
+  };
+
+  const formatStudentName = (fileName: string) => {
+    return fileName
+      .replace(/\.[^/.]+$/, "")
+      .replace(/[_-]/g, " ")
+      .replace(/\b\w/g, c => c.toUpperCase());
   };
 
   return (
     <div className="app-container">
-      <aside className={`sidebar ${sidebarCollapsed ? "collapsed" : ""}`}>
-        <div className="sidebar-header">
-          <div className="brand">
-            <Sparkles size={24} />
-            <span className="brand-name">MakeEasy Ed</span>
+      <header className="app-header">
+        <div>
+          <h1 className="app-title">MakeEasy Ed</h1>
+          <p className="app-subtitle">Phần mềm tạo và in Giấy Khen tự động dành cho giáo viên</p>
+        </div>
+        <div className="license-info">
+          <span>Trạng thái: {licenseStatus}</span>
+        </div>
+      </header>
+
+      <div className="step-container">
+        {/* BƯỚC 1 */}
+        <section className="step-card">
+          <div className="step-header">
+            <div className="step-number">1</div>
+            <h2 className="step-title">Chọn ảnh học sinh</h2>
           </div>
+          <p className="step-desc">
+            Chọn thư mục chứa ảnh chân dung của học sinh trên máy tính, hoặc chọn từng ảnh riêng lẻ. Tên file ảnh nên đặt theo tên học sinh (Ví dụ: Nguyen Van A.jpg).
+          </p>
+          <div className="button-group">
+            <button className="btn btn-primary" onClick={handleSelectFolder}>
+              <FolderOpen size={20} />
+              <span>Chọn thư mục ảnh</span>
+            </button>
+            <button className="btn btn-secondary" onClick={handleSelectFiles}>
+              <FileImage size={20} />
+              <span>Chọn từng file ảnh</span>
+            </button>
+            {selectedImages.length > 0 && (
+              <button className="btn btn-danger" onClick={handleClearImages}>
+                <span>Xóa hết chọn lại</span>
+              </button>
+            )}
+          </div>
+
+          <div className={`status-box ${selectedImages.length > 0 ? "active" : ""}`}>
+            {selectedImages.length > 0 ? (
+              <span>Đã nhận: {selectedImages.length} ảnh học sinh sẵn sàng tạo giấy khen.</span>
+            ) : (
+              <span style={{ color: "#dc2626" }}>Chưa chọn ảnh nào. Thầy/cô vui lòng chọn ảnh ở nút phía trên.</span>
+            )}
+          </div>
+        </section>
+
+        {/* BƯỚC 2 */}
+        <section className="step-card">
+          <div className="step-header">
+            <div className="step-number">2</div>
+            <h2 className="step-title">Chọn mẫu giấy khen</h2>
+          </div>
+          <p className="step-desc">Chọn mẫu giấy khen của nhà trường để in.</p>
+          <div className="template-grid">
+            <div className="template-option selected">
+              <div className="template-thumbnail">
+                <span>GIẤY KHEN</span>
+              </div>
+              <div className="template-name">Mẫu Học Sinh Giỏi (Mặc định)</div>
+            </div>
+          </div>
+        </section>
+
+        {/* BƯỚC 3 */}
+        <section className="step-card">
+          <div className="step-header">
+            <div className="step-number">3</div>
+            <h2 className="step-title">Xem trước & Căn chỉnh ảnh</h2>
+          </div>
+          <p className="step-desc">
+            Xem trước giấy khen của từng em học sinh. Nếu ảnh chân dung bị lệch, hãy bấm các nút mũi tên và phóng to/thu nhỏ bên dưới để ảnh nằm chính giữa khung tròn.
+          </p>
+
+          {selectedImages.length > 0 ? (
+            <div className="preview-container">
+              <div className="preview-nav">
+                <button 
+                  className="btn btn-secondary" 
+                  onClick={handlePrev}
+                  disabled={currentIndex === 0}
+                  style={{ height: "40px", minWidth: "120px", padding: "0 0.75rem" }}
+                >
+                  <ChevronLeft size={18} />
+                  <span>Ảnh trước</span>
+                </button>
+                <span>Giấy khen {currentIndex + 1} / {selectedImages.length}</span>
+                <button 
+                  className="btn btn-secondary" 
+                  onClick={handleNext}
+                  disabled={currentIndex === selectedImages.length - 1}
+                  style={{ height: "40px", minWidth: "120px", padding: "0 0.75rem" }}
+                >
+                  <span>Ảnh tiếp</span>
+                  <ChevronRight size={18} />
+                </button>
+              </div>
+
+              {/* KHUNG MÔ PHỎNG GIẤY KHEN IN */}
+              <div className="certificate-canvas-wrapper" style={{ width: "100%", maxWidth: "600px", padding: "2rem", border: "4px double #d1d5db" }}>
+                <div style={{ border: "2px solid #b45309", padding: "1.5rem", position: "relative", minHeight: "350px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "space-between", backgroundColor: "#fffbeb" }}>
+                  <div style={{ textAlign: "center" }}>
+                    <div style={{ fontSize: "14px", fontWeight: 700, color: "#b45309", letterSpacing: "0.1em" }}>CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div>
+                    <div style={{ fontSize: "11px", fontWeight: 700, color: "#b45309" }}>Độc lập - Tự do - Hạnh phúc</div>
+                    <div style={{ width: "80px", height: "1px", backgroundColor: "#b45309", margin: "4px auto" }}></div>
+                  </div>
+
+                  <div style={{ fontSize: "28px", fontWeight: 800, color: "#dc2626", fontFamily: "Georgia, serif", margin: "1rem 0" }}>GIẤY KHEN</div>
+
+                  {/* KHUNG TRÒN CHỨA ẢNH HỌC SINH */}
+                  <div style={{ 
+                    width: "120px", 
+                    height: "120px", 
+                    borderRadius: "50%", 
+                    border: "3px solid #b45309", 
+                    overflow: "hidden", 
+                    position: "relative",
+                    backgroundColor: "#e5e7eb"
+                  }}>
+                    <div style={{
+                      position: "absolute",
+                      top: "50%",
+                      left: "50%",
+                      width: "80px",
+                      height: "80px",
+                      borderRadius: "50%",
+                      backgroundColor: "#9ca3af",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "#ffffff",
+                      fontSize: "12px",
+                      fontWeight: 700,
+                      transform: `translate(-50%, -50%) translate(${imageOffsets.x}px, ${imageOffsets.y}px) scale(${imageOffsets.scale}) rotate(${imageOffsets.rotation}deg)`,
+                      transition: "transform 0.1s ease"
+                    }}>
+                      ẢNH HỌC SINH
+                    </div>
+                  </div>
+
+                  <div style={{ textAlign: "center", marginTop: "1rem" }}>
+                    <div style={{ fontSize: "14px", color: "#4b5563" }}>Khen tặng em học sinh:</div>
+                    <div style={{ fontSize: "20px", fontWeight: 700, color: "#111827", marginTop: "0.25rem" }}>
+                      {formatStudentName(selectedImages[currentIndex])}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* BẢNG ĐIỀU CHỈNH CĂN ẢNH BẰNG NÚT BẤM */}
+              <div className="adjust-panel">
+                <div className="adjust-label">Nút căn chỉnh ảnh học sinh (Bấm để di chuyển hoặc thu phóng):</div>
+                <div className="adjust-grid">
+                  <button className="btn btn-secondary btn-adjust" onClick={() => adjustOffset("up")}>
+                    <ArrowUp size={16} />
+                    <span>Dịch Lên</span>
+                  </button>
+                  <button className="btn btn-secondary btn-adjust" onClick={() => adjustOffset("down")}>
+                    <ArrowDown size={16} />
+                    <span>Dịch Xuống</span>
+                  </button>
+                  <button className="btn btn-secondary btn-adjust" onClick={() => adjustOffset("left")}>
+                    <ArrowLeft size={16} />
+                    <span>Dịch Trái</span>
+                  </button>
+                  <button className="btn btn-secondary btn-adjust" onClick={() => adjustOffset("right")}>
+                    <ArrowRight size={16} />
+                    <span>Dịch Phải</span>
+                  </button>
+                  <button className="btn btn-secondary btn-adjust" onClick={() => adjustZoom("in")}>
+                    <ZoomIn size={16} />
+                    <span>Phóng To</span>
+                  </button>
+                  <button className="btn btn-secondary btn-adjust" onClick={() => adjustZoom("out")}>
+                    <ZoomOut size={16} />
+                    <span>Thu Nhỏ</span>
+                  </button>
+                  <button className="btn btn-secondary btn-adjust" onClick={adjustRotation}>
+                    <RotateCw size={16} />
+                    <span>Xoay Ảnh</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="status-box" style={{ textAlign: "center", padding: "2rem" }}>
+              <span>Vui lòng hoàn thành **Bước 1** để xem trước giấy khen.</span>
+            </div>
+          )}
+        </section>
+
+        {/* BƯỚC 4 */}
+        <section className="step-card">
+          <div className="step-header">
+            <div className="step-number">4</div>
+            <h2 className="step-title">Tạo và tải file in PDF</h2>
+          </div>
+          <p className="step-desc">
+            Bấm nút bên dưới để gộp tất cả giấy khen của {selectedImages.length > 0 ? selectedImages.length : "các"} học sinh vào một file PDF để mang đi in.
+          </p>
+
           <button 
-            className="toggle-sidebar-btn"
-            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            className="btn btn-primary" 
+            onClick={handleExportPDF}
+            disabled={selectedImages.length === 0 || isExporting}
+            style={{ width: "100%", height: "54px", fontSize: "18px" }}
           >
-            {sidebarCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
+            <Printer size={22} />
+            <span>TẠO VÀ TẢI FILE PDF IN GIẤY KHEN</span>
+          </button>
+
+          {isExporting && (
+            <div className="progress-container">
+              <div className="progress-bar-bg">
+                <div className="progress-bar-fill" style={{ width: `${exportProgress}%` }}></div>
+              </div>
+              <div className="progress-text">
+                Đang tạo giấy khen cho em {formatStudentName(selectedImages[Math.min(currentIndex, selectedImages.length - 1)])}... ({exportProgress}%)
+              </div>
+            </div>
+          )}
+
+          {exportSuccess && (
+            <div className="result-card">
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <CheckCircle2 size={24} />
+                <span className="result-title">Đã tạo file PDF thành công!</span>
+              </div>
+              <p style={{ marginTop: "0.5rem", fontSize: "15px" }}>
+                File PDF đã được lưu vào thư mục Tải Về (Downloads) trên máy tính của bạn với tên **"Danh_Sach_Giay_Khen.pdf"**. Bạn có thể mang file này đi in ngay lập tức.
+              </p>
+            </div>
+          )}
+        </section>
+      </div>
+
+      {/* THÔNG TIN BẢN QUYỀN Ở DƯỚI CÙNG */}
+      <section className="license-settings">
+        <h3 className="license-title">Kích hoạt bản quyền phần mềm</h3>
+        <p className="step-desc" style={{ marginBottom: "1rem" }}>
+          Nếu thầy/cô đã mua gói phần mềm, hãy nhập mã bản quyền (License Key) bên dưới để kích hoạt đầy đủ tính năng.
+        </p>
+        <div className="license-form">
+          <input 
+            type="text" 
+            className="license-input"
+            placeholder="Nhập mã bản quyền của bạn..." 
+            value={licenseKey}
+            onChange={(e) => setLicenseKey(e.target.value)}
+          />
+          <button className="btn btn-primary" onClick={handleActivateLicense} style={{ minWidth: "120px" }}>
+            <Key size={18} />
+            <span>Kích Hoạt</span>
           </button>
         </div>
-
-        <ul className="nav-links">
-          <li>
-            <button
-              onClick={() => setActiveTab("dashboard")}
-              className={`nav-item ${activeTab === "dashboard" ? "active" : ""}`}
-              style={{ width: "100%", background: "none", border: "none", textAlign: "left" }}
-            >
-              <LayoutDashboard size={20} />
-              <span className="nav-item-text">Bảng Điều Khiển</span>
-            </button>
-          </li>
-          <li>
-            <button
-              onClick={() => setActiveTab("certificates")}
-              className={`nav-item ${activeTab === "certificates" ? "active" : ""}`}
-              style={{ width: "100%", background: "none", border: "none", textAlign: "left" }}
-            >
-              <Award size={20} />
-              <span className="nav-item-text">Tạo Chứng Chỉ</span>
-            </button>
-          </li>
-          <li>
-            <button
-              onClick={() => setActiveTab("classes")}
-              className={`nav-item ${activeTab === "classes" ? "active" : ""}`}
-              style={{ width: "100%", background: "none", border: "none", textAlign: "left" }}
-            >
-              <BookOpen size={20} />
-              <span className="nav-item-text">Lớp Học</span>
-            </button>
-          </li>
-          <li>
-            <button
-              onClick={() => setActiveTab("subscription")}
-              className={`nav-item ${activeTab === "subscription" ? "active" : ""}`}
-              style={{ width: "100%", background: "none", border: "none", textAlign: "left" }}
-            >
-              <CreditCard size={20} />
-              <span className="nav-item-text">Gói Ứng Dụng</span>
-            </button>
-          </li>
-        </ul>
-
-        <div className="sidebar-footer">
-          <div className="user-profile">
-            <div className="avatar">
-              {mockUser.name.split(" ").map(n => n[0]).join("")}
-            </div>
-            <div className="user-info">
-              <span className="username">{mockUser.name}</span>
-              <span className="user-status">{mockUser.plan}</span>
-            </div>
-          </div>
-        </div>
-      </aside>
-
-      <main className="main-content">
-        <header className="header">
-          <h1 className="page-title">{getPageTitle()}</h1>
-          <div className="header-actions">
-            <div className="license-badge">
-              <Zap size={16} />
-              <span>Gói: {mockUser.plan}</span>
-            </div>
-            <button className="theme-toggle-btn" onClick={toggleTheme}>
-              {theme === "light" ? <Moon size={20} /> : <Sun size={20} />}
-            </button>
-          </div>
-        </header>
-
-        <div className="content-body">
-          {activeTab === "dashboard" && (
-            <div>
-              <div className="dashboard-grid">
-                <div className="card">
-                  <div className="card-header-flex">
-                    <span className="card-title">Tổng số lớp</span>
-                    <div className="card-icon-container">
-                      <BookOpen size={20} />
-                    </div>
-                  </div>
-                  <div className="card-value">12</div>
-                  <div className="card-desc">Lớp học đang quản lý</div>
-                </div>
-
-                <div className="card accent-card">
-                  <div className="card-header-flex">
-                    <span className="card-title">Học sinh</span>
-                    <div className="card-icon-container">
-                      <Users size={20} />
-                    </div>
-                  </div>
-                  <div className="card-value">450</div>
-                  <div className="card-desc">Học sinh trong danh sách</div>
-                </div>
-
-                <div className="card">
-                  <div className="card-header-flex">
-                    <span className="card-title">Chứng chỉ đã tạo</span>
-                    <div className="card-icon-container">
-                      <Award size={20} />
-                    </div>
-                  </div>
-                  <div className="card-value">1,280</div>
-                  <div className="card-desc">Đã xuất bản và lưu trữ</div>
-                </div>
-              </div>
-
-              <div className="card" style={{ marginBottom: "2rem" }}>
-                <div style={{ marginBottom: "1rem" }}>
-                  <h3 style={{ fontSize: "1.125rem", fontWeight: 600 }}>Phím Tắt Nhanh</h3>
-                </div>
-                <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
-                  <button className="btn-primary" onClick={() => setActiveTab("certificates")}>
-                    <Plus size={18} />
-                    <span>Thiết kế chứng chỉ</span>
-                  </button>
-                  <button className="btn-primary" onClick={() => setActiveTab("classes")} style={{ background: "linear-gradient(135deg, var(--accent-color), #c084fc)" }}>
-                    <Plus size={18} />
-                    <span>Thêm lớp mới</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeTab === "certificates" && (
-            <div className="placeholder-view">
-              <Award className="placeholder-icon" size={48} />
-              <h2 className="placeholder-title">Trình Thiết Kế Chứng Chỉ</h2>
-              <p className="placeholder-text">
-                Import hình ảnh học sinh từ thư mục hoặc file riêng lẻ để tự động ghép vào mẫu chứng chỉ có sẵn, crop ảnh tròn và tải về file PDF tổng hợp.
-              </p>
-              <button className="btn-primary">
-                <Plus size={18} />
-                <span>Bắt đầu thiết kế</span>
-              </button>
-            </div>
-          )}
-
-          {activeTab === "classes" && (
-            <div className="placeholder-view">
-              <BookOpen className="placeholder-icon" size={48} />
-              <h2 className="placeholder-title">Quản Lý Lớp Học & Học Sinh</h2>
-              <p className="placeholder-text">
-                Quản lý thông tin lớp, danh sách học sinh và điểm số. Hỗ trợ import/export dữ liệu từ file Excel.
-              </p>
-              <button className="btn-primary">
-                <Plus size={18} />
-                <span>Tạo lớp học đầu tiên</span>
-              </button>
-            </div>
-          )}
-
-          {activeTab === "subscription" && (
-            <div className="card" style={{ maxWidth: "600px", margin: "0 auto" }}>
-              <div style={{ textAlign: "center", marginBottom: "2rem" }}>
-                <Zap size={48} style={{ color: "var(--accent-color)", marginBottom: "1rem" }} />
-                <h2 style={{ fontSize: "1.5rem", fontWeight: 700, marginBottom: "0.5rem" }}>Thông Tin Bản Quyền</h2>
-                <p style={{ color: "var(--text-muted)" }}>Trạng thái kích hoạt và gói dịch vụ hiện tại</p>
-              </div>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-                <div style={{ padding: "1rem", borderRadius: "12px", backgroundColor: "var(--border-color)", display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ fontWeight: 500 }}>Gói hiện tại:</span>
-                  <span style={{ fontWeight: 700, color: "var(--accent-color)" }}>{mockUser.plan}</span>
-                </div>
-
-                <div style={{ padding: "1rem", borderRadius: "12px", backgroundColor: "var(--border-color)", display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ fontWeight: 500 }}>Hạn dùng đến:</span>
-                  <span style={{ fontWeight: 600 }}>{mockUser.expiry}</span>
-                </div>
-
-                <div style={{ borderTop: "1px solid var(--border-color)", paddingTop: "1.5rem" }}>
-                  <label style={{ display: "block", fontSize: "0.875rem", fontWeight: 600, color: "var(--text-muted)", marginBottom: "0.5rem" }}>
-                    KÍCH HOẠT BẢN QUYỀN MỚI
-                  </label>
-                  <div style={{ display: "flex", gap: "0.75rem" }}>
-                    <input 
-                      type="text" 
-                      placeholder="Nhập mã bản quyền của bạn..." 
-                      value={licenseKey}
-                      onChange={(e) => setLicenseKey(e.target.value)}
-                      style={{
-                        flex: 1,
-                        padding: "0.75rem 1rem",
-                        borderRadius: "12px",
-                        border: "1px solid var(--border-color)",
-                        backgroundColor: "var(--bg-app)",
-                        color: "var(--text-main)"
-                      }}
-                    />
-                    <button className="btn-primary" style={{ padding: "0.75rem 1.5rem" }}>
-                      <span>Kích Hoạt</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </main>
+      </section>
     </div>
   );
 }
