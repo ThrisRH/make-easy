@@ -9,21 +9,25 @@ interface TabNavigationProps {
 
 export function TabNavigation({ activeTab, setActiveTab }: TabNavigationProps) {
   return (
-    <nav className="app-nav-tabs">
-      <button 
-        className={`tab-btn ${activeTab === "certificates" ? "active" : ""}`}
-        onClick={() => setActiveTab("certificates")}
-      >
-        <Printer size={20} />
-        <span>Tạo Giấy Khen</span>
-      </button>
-      <button 
-        className={`tab-btn ${activeTab === "settings" ? "active" : ""}`}
-        onClick={() => setActiveTab("settings")}
-      >
-        <Settings size={20} />
-        <span>Cài Đặt & Bản Quyền</span>
-      </button>
-    </nav>
+    <ul className="sidebar-menu">
+      <li>
+        <button 
+          className={`menu-btn ${activeTab === "certificates" ? "active" : ""}`}
+          onClick={() => setActiveTab("certificates")}
+        >
+          <Printer size={22} />
+          <span>Tạo Giấy Khen</span>
+        </button>
+      </li>
+      <li>
+        <button 
+          className={`menu-btn ${activeTab === "settings" ? "active" : ""}`}
+          onClick={() => setActiveTab("settings")}
+        >
+          <Settings size={22} />
+          <span>Cài Đặt & Bản Quyền</span>
+        </button>
+      </li>
+    </ul>
   );
 }

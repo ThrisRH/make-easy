@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Header } from "./components/Header";
 import { TabNavigation } from "./components/TabNavigation";
 import { CertificateCreator } from "./components/CertificateCreator";
 import { SettingsPanel } from "./components/SettingsPanel";
@@ -7,9 +6,15 @@ import "./App.css";
 
 type Tab = "certificates" | "settings";
 
+export interface StudentData {
+  imagePath: string;
+  name: string;
+  achievement: string;
+}
+
 function App() {
   const [activeTab, setActiveTab] = useState<Tab>("certificates");
-  const [selectedImages, setSelectedImages] = useState<string[]>([]);
+  const [students, setStudents] = useState<StudentData[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   
   const [imageOffsets, setImageOffsets] = useState({
@@ -24,43 +29,66 @@ function App() {
   const [exportSuccess, setExportSuccess] = useState(false);
   
   const [schoolName, setSchoolName] = useState("Trường Tiểu Học Bình Minh");
+  const [className, setClassName] = useState("Lớp 5A");
   const [principalName, setPrincipalName] = useState("Nguyễn Văn A");
   const [location, setLocation] = useState("Hà Nội");
+
+  const [noGradeCommon, setNoGradeCommon] = useState(false);
+  const [noGradeTextCommon, setNoGradeTextCommon] = useState("Chúc mừng hoàn thành chương trình tiểu học");
 
   const [licenseKey, setLicenseKey] = useState("");
   const [licenseStatus, setLicenseStatus] = useState("Premium (Hạn dùng: Vĩnh viễn)");
 
+  const formatStudentName = (fileName: string) => {
+    return fileName
+      .replace(/\.[^/.]+$/, "")
+      .replace(/[_-]/g, " ")
+      .replace(/\b\w/g, c => c.toUpperCase());
+  };
+
   const handleSelectFolder = () => {
-    setSelectedImages([
+    const images = [
       "Nguyen Van A.jpg",
       "Tran Thi B.jpg",
       "Le Van C.jpg",
       "Pham Minh D.jpg",
       "Hoang Anh E.jpg"
-    ]);
+    ];
+    const initialStudents = images.map(img => ({
+      imagePath: img,
+      name: formatStudentName(img),
+      achievement: "Hoàn thành xuất sắc nhiệm vụ học tập"
+    }));
+    setStudents(initialStudents);
     setCurrentIndex(0);
     setImageOffsets({ x: 0, y: 0, scale: 1, rotation: 0 });
     setExportSuccess(false);
   };
 
   const handleSelectFiles = () => {
-    setSelectedImages([
+    const images = [
       "Nguyen Van A.jpg",
       "Tran Thi B.jpg"
-    ]);
+    ];
+    const initialStudents = images.map(img => ({
+      imagePath: img,
+      name: formatStudentName(img),
+      achievement: "Hoàn thành xuất sắc nhiệm vụ học tập"
+    }));
+    setStudents(initialStudents);
     setCurrentIndex(0);
     setImageOffsets({ x: 0, y: 0, scale: 1, rotation: 0 });
     setExportSuccess(false);
   };
 
   const handleClearImages = () => {
-    setSelectedImages([]);
+    setStudents([]);
     setCurrentIndex(0);
     setExportSuccess(false);
   };
 
   const handleNext = () => {
-    if (currentIndex < selectedImages.length - 1) {
+    if (currentIndex < students.length - 1) {
       setCurrentIndex(currentIndex + 1);
     }
   };
@@ -94,7 +122,7 @@ function App() {
   };
 
   const handleExportPDF = () => {
-    if (selectedImages.length === 0) return;
+    if (students.length === 0) return;
     setIsExporting(true);
     setExportProgress(0);
     setExportSuccess(false);
@@ -119,54 +147,90 @@ function App() {
     }
   };
 
-  const formatStudentName = (fileName: string) => {
-    return fileName
-      .replace(/\.[^/.]+$/, "")
-      .replace(/[_-]/g, " ")
-      .replace(/\b\w/g, c => c.toUpperCase());
+  const updateStudentData = (index: number, updatedFields: Partial<StudentData>) => {
+    setStudents(prev => prev.map((s, idx) => idx === index ? { ...s, ...updatedFields } : s));
   };
 
   return (
-    <div className="app-container">
-      <Header licenseStatus={licenseStatus} />
-      
-      <TabNavigation activeTab={activeTab} setActiveTab={setActiveTab} />
+    <div className="app-layout">
+      {/* SIDEBAR YOUTUBE STUDIO STYLE */}
+      <aside className="sidebar-yts">
+        <div className="sidebar-profile">
+          <div className="sidebar-avatar">
+            GV
+          </div>
+          <div className="sidebar-profile-name">Thầy/Cô Giáo</div>
+          <div className="sidebar-profile-role">{schoolName || "Trường Tiểu Học"}</div>
+        </div>
 
-      {activeTab === "certificates" ? (
-        <CertificateCreator
-          selectedImages={selectedImages}
-          currentIndex={currentIndex}
-          imageOffsets={imageOffsets}
-          isExporting={isExporting}
-          exportProgress={exportProgress}
-          exportSuccess={exportSuccess}
-          schoolName={schoolName}
-          handleSelectFolder={handleSelectFolder}
-          handleSelectFiles={handleSelectFiles}
-          handleClearImages={handleClearImages}
-          handleNext={handleNext}
-          handlePrev={handlePrev}
-          adjustOffset={adjustOffset}
-          adjustZoom={adjustZoom}
-          adjustRotation={adjustRotation}
-          handleExportPDF={handleExportPDF}
-          formatStudentName={formatStudentName}
-        />
-      ) : (
-        <SettingsPanel
-          schoolName={schoolName}
-          setSchoolName={setSchoolName}
-          principalName={principalName}
-          setPrincipalName={setPrincipalName}
-          location={location}
-          setLocation={setLocation}
-          licenseKey={licenseKey}
-          setLicenseKey={setLicenseKey}
-          handleActivateLicense={handleActivateLicense}
-        />
-      )}
+        <TabNavigation activeTab={activeTab} setActiveTab={setActiveTab} />
+
+        <div className="sidebar-footer">
+          <span>Phiên bản v0.0.0</span>
+        </div>
+      </aside>
+
+      {/* MAIN CONTAINER */}
+      <main className="main-yts">
+        {/* HEADER YOUTUBE STUDIO STYLE */}
+        <header className="header-yts">
+          <div className="header-title">
+            {activeTab === "certificates" ? "Tạo Giấy Khen Học Sinh" : "Cấu Hình & Bản Quyền"}
+          </div>
+          <div className="header-right">
+            <div className="license-info">
+              <span>Bản quyền: {licenseStatus}</span>
+            </div>
+          </div>
+        </header>
+
+        {/* WORKSPACE CONTENT AREA */}
+        <div className="content-yts">
+          {activeTab === "certificates" ? (
+            <CertificateCreator
+              students={students}
+              currentIndex={currentIndex}
+              imageOffsets={imageOffsets}
+              isExporting={isExporting}
+              exportProgress={exportProgress}
+              exportSuccess={exportSuccess}
+              schoolName={schoolName}
+              setSchoolName={setSchoolName}
+              classNameVal={className}
+              setClassNameVal={setClassName}
+              noGradeCommon={noGradeCommon}
+              setNoGradeCommon={setNoGradeCommon}
+              noGradeTextCommon={noGradeTextCommon}
+              setNoGradeTextCommon={setNoGradeTextCommon}
+              handleSelectFolder={handleSelectFolder}
+              handleSelectFiles={handleSelectFiles}
+              handleClearImages={handleClearImages}
+              handleNext={handleNext}
+              handlePrev={handlePrev}
+              adjustOffset={adjustOffset}
+              adjustZoom={adjustZoom}
+              adjustRotation={adjustRotation}
+              handleExportPDF={handleExportPDF}
+              updateStudentData={updateStudentData}
+            />
+          ) : (
+            <SettingsPanel
+              schoolName={schoolName}
+              setSchoolName={setSchoolName}
+              principalName={principalName}
+              setPrincipalName={setPrincipalName}
+              location={location}
+              setLocation={setLocation}
+              licenseKey={licenseKey}
+              setLicenseKey={setLicenseKey}
+              handleActivateLicense={handleActivateLicense}
+            />
+          )}
+        </div>
+      </main>
     </div>
   );
 }
 
 export default App;
+export type { Tab };
